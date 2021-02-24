@@ -17,7 +17,7 @@ import numpy as np
 
 
 def get_model(data_in, data_out, dropout_rate, nb_cnn2d_filt, f_pool_size, t_pool_size,
-              rnn_size, fnn_size, weights, doa_objective):
+              rnn_size, fnn_size, weights, doa_objective, is_accdoa):
     # model definition
     spec_start = Input(shape=(data_in[-3], data_in[-2], data_in[-1]))
 
@@ -31,8 +31,8 @@ def get_model(data_in, data_out, dropout_rate, nb_cnn2d_filt, f_pool_size, t_poo
         spec_cnn = Dropout(dropout_rate)(spec_cnn)
     spec_cnn = Permute((2, 1, 3))(spec_cnn)
 
-    # RNN
-    spec_rnn = Reshape((data_out[0][-2], -1))(spec_cnn)
+    # RNN    
+    spec_rnn = Reshape((data_out[-2] if is_accdoa else data_out[0][-2], -1))(spec_cnn)
     for nb_rnn_filt in rnn_size:
         spec_rnn = Bidirectional(
             GRU(nb_rnn_filt, activation='tanh', dropout=dropout_rate, recurrent_dropout=dropout_rate,
@@ -46,28 +46,32 @@ def get_model(data_in, data_out, dropout_rate, nb_cnn2d_filt, f_pool_size, t_poo
         doa = TimeDistributed(Dense(nb_fnn_filt))(doa)
         doa = Dropout(dropout_rate)(doa)
 
-    doa = TimeDistributed(Dense(data_out[1][-1]))(doa)
+    doa = TimeDistributed(Dense(data_out[-1] if is_accdoa else data_out[1][-1]))(doa)
     doa = Activation('tanh', name='doa_out')(doa)
 
-    # FC - SED
-    sed = spec_rnn
-    for nb_fnn_filt in fnn_size:
-        sed = TimeDistributed(Dense(nb_fnn_filt))(sed)
-        sed = Dropout(dropout_rate)(sed)
-    sed = TimeDistributed(Dense(data_out[0][-1]))(sed)
-    sed = Activation('sigmoid', name='sed_out')(sed)
-
     model = None
-    if doa_objective is 'mse':
-        model = Model(inputs=spec_start, outputs=[sed, doa])
-        model.compile(optimizer=Adam(), loss=['binary_crossentropy', 'mse'], loss_weights=weights)
-    elif doa_objective is 'masked_mse':
-        doa_concat = Concatenate(axis=-1, name='doa_concat')([sed, doa])
-        model = Model(inputs=spec_start, outputs=[sed, doa_concat])
-        model.compile(optimizer=Adam(), loss=['binary_crossentropy', masked_mse], loss_weights=weights)
+    if is_accdoa:
+        model = Model(inputs=spec_start, outputs=doa)
+        model.compile(optimizer=Adam(), loss='mse')
     else:
-        print('ERROR: Unknown doa_objective: {}'.format(doa_objective))
-        exit()
+        # FC - SED
+        sed = spec_rnn
+        for nb_fnn_filt in fnn_size:
+            sed = TimeDistributed(Dense(nb_fnn_filt))(sed)
+            sed = Dropout(dropout_rate)(sed)
+        sed = TimeDistributed(Dense(data_out[0][-1]))(sed)
+        sed = Activation('sigmoid', name='sed_out')(sed)
+
+        if doa_objective is 'mse':
+            model = Model(inputs=spec_start, outputs=[sed, doa])
+            model.compile(optimizer=Adam(), loss=['binary_crossentropy', 'mse'], loss_weights=weights)
+        elif doa_objective is 'masked_mse':
+            doa_concat = Concatenate(axis=-1, name='doa_concat')([sed, doa])
+            model = Model(inputs=spec_start, outputs=[sed, doa_concat])
+            model.compile(optimizer=Adam(), loss=['binary_crossentropy', masked_mse], loss_weights=weights)
+        else:
+            print('ERROR: Unknown doa_objective: {}'.format(doa_objective))
+            exit()
     model.summary()
     return model
 

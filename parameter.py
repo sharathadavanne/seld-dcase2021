@@ -8,15 +8,15 @@ def get_params(argv='1'):
     print("SET: {}".format(argv))
     # ########### default parameters ##############
     params = dict(
-        quick_test=True,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
+        quick_test=False,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         # INPUT PATH
         dataset_dir='/scratch/asignal/sharath/DCASE2020_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATH
-        feat_label_dir='/scratch/asignal/sharath/DCASE2020_SELD_dataset/feat_label/',  # Directory to dump extracted features and labels
+        feat_label_dir='/scratch/asignal/sharath/DCASE2020_SELD_dataset/seld_feat_label/',  # Directory to dump extracted features and labels
         model_dir='models/',   # Dumps the trained models and training curves in this folder
-        dcase_output=True,     # If true, dumps the results recording-wise in 'dcase_dir' path.
+        dcase_output=False,     # If true, dumps the results recording-wise in 'dcase_dir' path.
                                # Set this true after you have finalized your model, save the output, and submit
         dcase_dir='results/',  # Dumps the recording-wise network output in this folder
 
@@ -44,7 +44,8 @@ def get_params(argv='1'):
         nb_epochs=50,               # Train for maximum epochs
         epochs_per_fit=5,           # Number of epochs per fit
         doa_objective='masked_mse',     # supports: mse, masked_mse. mse- original seld approach; masked_mse - dcase 2020 approach
-        
+        is_accdoa=True,
+
         #METRIC PARAMETERS
         lad_doa_thresh=20
        

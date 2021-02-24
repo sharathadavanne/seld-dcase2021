@@ -20,6 +20,7 @@ class DataGenerator(object):
         self._batch_size = params['batch_size']
         self._feature_seq_len = params['feature_sequence_length']
         self._label_seq_len = params['label_sequence_length']
+        self._is_accdoa = params['is_accdoa']
         self._shuffle = shuffle
         self._feat_cls = cls_feature_class.FeatureClass(params=params, is_eval=self._is_eval)
         self._label_dir = self._feat_cls.get_label_dir()
@@ -74,10 +75,13 @@ class DataGenerator(object):
         if self._is_eval:
             label_shape = None
         else:
-            label_shape = [
-                (self._batch_size, self._label_seq_len, self._nb_classes),
-                (self._batch_size, self._label_seq_len, self._nb_classes*3)
-            ]
+            if self._is_accdoa:
+                label_shape = (self._batch_size, self._label_seq_len, self._nb_classes*3)
+            else:
+                label_shape = [
+                    (self._batch_size, self._label_seq_len, self._nb_classes),
+                    (self._batch_size, self._label_seq_len, self._nb_classes*3)
+                ]
         return feat_shape, label_shape
 
     def get_total_batches_in_data(self):
@@ -196,11 +200,16 @@ class DataGenerator(object):
                     feat = self._split_in_seqs(feat, self._feature_seq_len)
                     feat = np.transpose(feat, (0, 3, 1, 2))
                     label = self._split_in_seqs(label, self._label_seq_len)
+                    if self._is_accdoa:
+                        mask = label[:, :, :self._nb_classes]
+                        mask = np.tile(mask, 3)
+                        label = mask * label[:, :, self._nb_classes:]
 
-                    label = [
-                        label[:, :, :self._nb_classes],  # SED labels
-                        label # SED + DOA labels
-                         ]
+                    else:
+                         label = [
+                            label[:, :, :self._nb_classes],  # SED labels
+                            label # SED + DOA labels
+                             ]
                     yield feat, label
 
     def _split_in_seqs(self, data, _seq_len):

@@ -15,30 +15,50 @@ import time
 plot.switch_backend('agg')
 from IPython import embed
 
+def get_accdoa_labels(accdoa_in, nb_classes):
+    x, y, z = accdoa_in[:, :, :nb_classes], accdoa_in[:, :, nb_classes:2*nb_classes], accdoa_in[:, :, 2*nb_classes:]
+    sed = np.sqrt(x**2 + y**2 + z**2) > 0.5
+      
+    return sed, accdoa_in
 
-def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test):
+def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test, is_accdoa):
     # Collecting ground truth for test data
     nb_batch = 2 if quick_test else _data_gen_test.get_total_batches_in_data()
 
-    batch_size = _data_out[0][0]
-    gt_sed = np.zeros((nb_batch * batch_size, _data_out[0][1], _data_out[0][2]))
-    gt_doa = np.zeros((nb_batch * batch_size, _data_out[0][1], _data_out[1][2]))
+    if is_accdoa: 
+        batch_size = _data_out[0]
+        gt_sed = np.zeros((nb_batch * batch_size, _data_out[1], _data_out[2]//3))
+        gt_doa = np.zeros((nb_batch * batch_size, _data_out[1], _data_out[2]))
 
-    print("nb_batch in test: {}".format(nb_batch))
-    cnt = 0
-    for tmp_feat, tmp_label in _data_gen_test.generate():
-        gt_sed[cnt * batch_size:(cnt + 1) * batch_size, :, :] = tmp_label[0]
-        if _data_gen_test.get_data_gen_mode():
-            doa_label = tmp_label[1]
-        else:
-            doa_label = tmp_label[1][:, :, _nb_classes:]
-        gt_doa[cnt * batch_size:(cnt + 1) * batch_size, :, :] = doa_label
-        cnt = cnt + 1
-        if cnt == nb_batch:
-            break
+        print("nb_batch in test: {}".format(nb_batch))
+        cnt = 0
+        for tmp_feat, tmp_label in _data_gen_test.generate():            
+            sed, doa = get_accdoa_labels(tmp_label, _nb_classes)
+            gt_sed[cnt * batch_size:(cnt + 1) * batch_size, :, :] = sed
+            gt_doa[cnt * batch_size:(cnt + 1) * batch_size, :, :] = doa
+            cnt = cnt + 1
+            if cnt == nb_batch:
+                break
+    else:
+        batch_size = _data_out[0][0]
+        gt_sed = np.zeros((nb_batch * batch_size, _data_out[0][1], _data_out[0][2]))
+        gt_doa = np.zeros((nb_batch * batch_size, _data_out[0][1], _data_out[1][2]))
+
+        print("nb_batch in test: {}".format(nb_batch))
+        cnt = 0
+        for tmp_feat, tmp_label in _data_gen_test.generate():            
+            gt_sed[cnt * batch_size:(cnt + 1) * batch_size, :, :] = tmp_label[0]
+            if _data_gen_test.get_data_gen_mode():
+                doa_label = tmp_label[1]
+            else:
+                doa_label = tmp_label[1][:, :, _nb_classes:]
+            gt_doa[cnt * batch_size:(cnt + 1) * batch_size, :, :] = doa_label
+            cnt = cnt + 1
+            if cnt == nb_batch:
+                break
     return gt_sed.astype(int), gt_doa
 
-
+ 
 def plot_functions(fig_name, _tr_loss, _sed_loss, _doa_loss, _epoch_metric_loss, _new_metric, _new_seld_metric):
     plot.figure()
     nb_epoch = len(_tr_loss)
@@ -151,7 +171,7 @@ def main(argv):
         print('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))
 
         nb_classes = data_gen_train.get_nb_classes()
-        gt = collect_test_labels(data_gen_val, data_out, nb_classes, params['quick_test'])
+        gt = collect_test_labels(data_gen_val, data_out, nb_classes, params['quick_test'], params['is_accdoa'])
         sed_gt = evaluation_metrics.reshape_3Dto2D(gt[0])
         doa_gt = evaluation_metrics.reshape_3Dto2D(gt[1])
 
@@ -163,7 +183,7 @@ def main(argv):
         model = keras_model.get_model(data_in=data_in, data_out=data_out, dropout_rate=params['dropout_rate'],
                                       nb_cnn2d_filt=params['nb_cnn2d_filt'], f_pool_size=params['f_pool_size'], t_pool_size=params['t_pool_size'],
                                       rnn_size=params['rnn_size'], fnn_size=params['fnn_size'],
-                                      weights=params['loss_weights'], doa_objective=params['doa_objective'])
+                                      weights=params['loss_weights'], doa_objective=params['doa_objective'], is_accdoa=params['is_accdoa'])
         best_seld_metric = 99999
         best_epoch = -1
         patience_cnt = 0
@@ -195,9 +215,15 @@ def main(argv):
                 verbose=2
             )
 
-            sed_pred = evaluation_metrics.reshape_3Dto2D(pred[0]) > 0.5
-            doa_pred = evaluation_metrics.reshape_3Dto2D(pred[1] if params['doa_objective'] is 'mse' else pred[1][:, :, nb_classes:])
 
+            if params['is_accdoa']:
+                sed_pred, doa_pred = get_accdoa_labels(pred, nb_classes)
+                sed_pred = evaluation_metrics.reshape_3Dto2D(sed_pred)
+                doa_pred = evaluation_metrics.reshape_3Dto2D(doa_pred)
+            else:
+                sed_pred = evaluation_metrics.reshape_3Dto2D(pred[0]) > 0.5
+                doa_pred = evaluation_metrics.reshape_3Dto2D(pred[1] if params['doa_objective'] is 'mse' else pred[1][:, :, nb_classes:])
+            
             # Calculate the DCASE 2019 metrics - Detection-only and Localization-only scores
             sed_metric[epoch_cnt, :] = evaluation_metrics.compute_sed_scores(sed_pred, sed_gt, data_gen_val.nb_frames_1s())
             doa_metric[epoch_cnt, :] = evaluation_metrics.compute_doa_scores_regr_xyz(doa_pred, doa_gt, sed_pred, sed_gt)
@@ -273,9 +299,13 @@ def main(argv):
             steps=2 if params['quick_test'] else data_gen_test.get_total_batches_in_data(),
             verbose=2
         )
-
-        test_sed_pred = evaluation_metrics.reshape_3Dto2D(pred_test[0]) > 0.5
-        test_doa_pred = evaluation_metrics.reshape_3Dto2D(pred_test[1] if params['doa_objective'] is 'mse' else pred_test[1][:, :, nb_classes:])
+        if params['is_accdoa']:
+            test_sed_pred, test_doa_pred = get_accdoa_labels(pred, nb_classes)
+            test_sed_pred = evaluation_metrics.reshape_3Dto2D(test_sed_pred)
+            test_doa_pred = evaluation_metrics.reshape_3Dto2D(test_doa_pred)
+        else:
+            test_sed_pred = evaluation_metrics.reshape_3Dto2D(pred_test[0]) > 0.5
+            test_doa_pred = evaluation_metrics.reshape_3Dto2D(pred_test[1] if params['doa_objective'] is 'mse' else pred_test[1][:, :, nb_classes:])
 
         if params['dcase_output']:
             # Dump results in DCASE output format for calculating final scores
@@ -290,7 +320,6 @@ def main(argv):
             # Number of frames in one batch (batch_size* sequence_length) consists of all the 600 frames above with
             # zero padding in the remaining frames
             frames_per_file = data_gen_test.get_frame_per_file()
-
             for file_cnt in range(test_sed_pred.shape[0]//frames_per_file):
                 output_file = os.path.join(dcase_dump_folder, test_filelist[file_cnt].replace('.npy', '.csv'))
                 dc = file_cnt * frames_per_file
@@ -302,7 +331,7 @@ def main(argv):
 
         if params['mode'] is 'dev':
             test_data_in, test_data_out = data_gen_test.get_data_sizes()
-            test_gt = collect_test_labels(data_gen_test, test_data_out, nb_classes, params['quick_test'])
+            test_gt = collect_test_labels(data_gen_test, test_data_out, nb_classes, params['quick_test'], params['is_accdoa'])
             test_sed_gt = evaluation_metrics.reshape_3Dto2D(test_gt[0])
             test_doa_gt = evaluation_metrics.reshape_3Dto2D(test_gt[1])
          
