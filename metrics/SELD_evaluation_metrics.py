@@ -296,3 +296,7 @@ def early_stopping_metric(sed_error, doa_error):
         1 - doa_error[1]]
         )
     return seld_metric
+
+def reshape_3Dto2D(A):
+    return A.reshape(A.shape[0] * A.shape[1], A.shape[2])
+

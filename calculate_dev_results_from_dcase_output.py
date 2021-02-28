@@ -26,8 +26,8 @@ def get_nb_files(_pred_file_list, _group='split'):
 
 
 # INPUT DIRECTORY
-ref_desc_files = '/scratch/asignal/sharath/DCASE2020_SELD_dataset/metadata_dev' # reference description directory location
-pred_output_format_files = 'results/2_mic_dev' # predicted output format directory location
+ref_desc_files = '/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy/metadata_dev' # reference description directory location
+pred_output_format_files = 'results/4_foa_dev' # predicted output format directory location
 use_polar_format = True # Compute SELD metrics using polar or Cartesian coordinates
 
 # Load feature class
@@ -43,7 +43,7 @@ pred_files = os.listdir(pred_output_format_files)
 nb_pred_files = len(pred_files)
 
 # Calculate scores for different splits, overlapping sound events, and impulse responses (reverberant scenes)
-score_type_list = ['all', 'ov', 'ir']
+score_type_list = ['all', 'ir']
 print('Number of predicted files: {}\nNumber of reference files: {}'.format(nb_pred_files, nb_ref_files))
 print('\nCalculating {} scores for {}'.format(score_type_list, os.path.basename(pred_output_format_files)))
 

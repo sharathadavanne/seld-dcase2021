@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plot
 import cls_feature_class
 import cls_data_generator
-from metrics import evaluation_metrics, SELD_evaluation_metrics
+from metrics import SELD_evaluation_metrics
 import keras_model
 import parameter
 import time
@@ -21,11 +21,11 @@ def get_accdoa_labels(accdoa_in, nb_classes):
       
     return sed, accdoa_in
 
-def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test, is_accdoa):
+def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test, is_accdoa, doa_objective):
     # Collecting ground truth for test data
     nb_batch = 2 if quick_test else _data_gen_test.get_total_batches_in_data()
 
-    if is_accdoa: 
+    if is_accdoa:         
         batch_size = _data_out[0]
         gt_sed = np.zeros((nb_batch * batch_size, _data_out[1], _data_out[2]//3))
         gt_doa = np.zeros((nb_batch * batch_size, _data_out[1], _data_out[2]))
@@ -48,7 +48,7 @@ def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test, is_a
         cnt = 0
         for tmp_feat, tmp_label in _data_gen_test.generate():            
             gt_sed[cnt * batch_size:(cnt + 1) * batch_size, :, :] = tmp_label[0]
-            if _data_gen_test.get_data_gen_mode():
+            if doa_objective is 'mse':
                 doa_label = tmp_label[1]
             else:
                 doa_label = tmp_label[1][:, :, _nb_classes:]
@@ -59,40 +59,22 @@ def collect_test_labels(_data_gen_test, _data_out, _nb_classes, quick_test, is_a
     return gt_sed.astype(int), gt_doa
 
  
-def plot_functions(fig_name, _tr_loss, _sed_loss, _doa_loss, _epoch_metric_loss, _new_metric, _new_seld_metric):
+def plot_functions(fig_name, _tr_loss, _new_metric, _new_seld_metric):
     plot.figure()
     nb_epoch = len(_tr_loss)
-    plot.subplot(411)
+    plot.subplot(211)
     plot.plot(range(nb_epoch), _tr_loss, label='train loss')
     plot.legend()
     plot.grid(True)
 
-    plot.subplot(412)
-    plot.plot(range(nb_epoch), _sed_loss[:, 0], label='sed er')
-    plot.plot(range(nb_epoch), _sed_loss[:, 1], label='sed f1')
-    plot.plot(range(nb_epoch), _doa_loss[:, 0]/180., label='doa er / 180')
-    plot.plot(range(nb_epoch), _doa_loss[:, 1], label='doa fr')
-    plot.plot(range(nb_epoch), _epoch_metric_loss, label='seld')
-    plot.legend()
-    plot.grid(True)
-
-    plot.subplot(413)
+    plot.subplot(212)
     plot.plot(range(nb_epoch), _new_metric[:, 0], label='seld er')
     plot.plot(range(nb_epoch), _new_metric[:, 1], label='seld f1')
     plot.plot(range(nb_epoch), _new_metric[:, 2]/180., label='doa er / 180')
     plot.plot(range(nb_epoch), _new_metric[:, 3], label='doa fr')
     plot.plot(range(nb_epoch), _new_seld_metric, label='seld')
-
     plot.legend()
     plot.grid(True)
-
-    plot.subplot(414)
-    plot.plot(range(nb_epoch), _doa_loss[:, 2], label='pred_pks')
-    plot.plot(range(nb_epoch), _doa_loss[:, 3], label='good_pks')
-    plot.legend()
-    plot.grid(True)
-
-    plot.savefig(fig_name)
     plot.close()
 
 
@@ -139,8 +121,6 @@ def main(argv):
         val_splits = [[6]]
         train_splits = [[1, 2, 3, 4, 5]]
 
-    avg_scores_val = []
-    avg_scores_test = []
     for split_cnt, split in enumerate(test_splits):
         print('\n\n---------------------------------------------------------------------------------------------------')
         print('------------------------------------      SPLIT {}   -----------------------------------------------'.format(split))
@@ -171,9 +151,9 @@ def main(argv):
         print('FEATURES:\n\tdata_in: {}\n\tdata_out: {}\n'.format(data_in, data_out))
 
         nb_classes = data_gen_train.get_nb_classes()
-        gt = collect_test_labels(data_gen_val, data_out, nb_classes, params['quick_test'], params['is_accdoa'])
-        sed_gt = evaluation_metrics.reshape_3Dto2D(gt[0])
-        doa_gt = evaluation_metrics.reshape_3Dto2D(gt[1])
+        gt = collect_test_labels(data_gen_val, data_out, nb_classes, params['quick_test'], params['is_accdoa'], params['doa_objective'])
+        sed_gt = SELD_evaluation_metrics.reshape_3Dto2D(gt[0])
+        doa_gt = SELD_evaluation_metrics.reshape_3Dto2D(gt[1])
 
         print('MODEL:\n\tdropout_rate: {}\n\tCNN: nb_cnn_filt: {}, f_pool_size{}, t_pool_size{}\n\trnn_size: {}, fnn_size: {}\n\tdoa_objective: {}\n'.format(
             params['dropout_rate'], params['nb_cnn2d_filt'], params['f_pool_size'], params['t_pool_size'], params['rnn_size'],
@@ -188,12 +168,9 @@ def main(argv):
         best_epoch = -1
         patience_cnt = 0
         nb_epoch = 2 if params['quick_test'] else params['nb_epochs']
-        seld_metric = np.zeros(nb_epoch)
-        new_seld_metric = np.zeros(nb_epoch)
         tr_loss = np.zeros(nb_epoch)
-        doa_metric = np.zeros((nb_epoch, 6))
-        sed_metric = np.zeros((nb_epoch, 2))
-        new_metric = np.zeros((nb_epoch, 4))
+        seld_metric = np.zeros((nb_epoch, 4))
+        early_stop_metric = np.zeros(nb_epoch)
 
         # start training
         for epoch_cnt in range(nb_epoch):
@@ -208,7 +185,7 @@ def main(argv):
             )
             tr_loss[epoch_cnt] = hist.history.get('loss')[-1]
 
-            # predict once per peoch
+            # predict once per epoch
             pred = model.predict_generator(
                 generator=data_gen_val.generate(),
                 steps=2 if params['quick_test'] else data_gen_val.get_total_batches_in_data(),
@@ -218,19 +195,14 @@ def main(argv):
 
             if params['is_accdoa']:
                 sed_pred, doa_pred = get_accdoa_labels(pred, nb_classes)
-                sed_pred = evaluation_metrics.reshape_3Dto2D(sed_pred)
-                doa_pred = evaluation_metrics.reshape_3Dto2D(doa_pred)
+                sed_pred = SELD_evaluation_metrics.reshape_3Dto2D(sed_pred)
+                doa_pred = SELD_evaluation_metrics.reshape_3Dto2D(doa_pred)
             else:
-                sed_pred = evaluation_metrics.reshape_3Dto2D(pred[0]) > 0.5
-                doa_pred = evaluation_metrics.reshape_3Dto2D(pred[1] if params['doa_objective'] is 'mse' else pred[1][:, :, nb_classes:])
+                sed_pred = SELD_evaluation_metrics.reshape_3Dto2D(pred[0]) > 0.5
+                doa_pred = SELD_evaluation_metrics.reshape_3Dto2D(pred[1] if params['doa_objective'] is 'mse' else pred[1][:, :, nb_classes:])
             
-            # Calculate the DCASE 2019 metrics - Detection-only and Localization-only scores
-            sed_metric[epoch_cnt, :] = evaluation_metrics.compute_sed_scores(sed_pred, sed_gt, data_gen_val.nb_frames_1s())
-            doa_metric[epoch_cnt, :] = evaluation_metrics.compute_doa_scores_regr_xyz(doa_pred, doa_gt, sed_pred, sed_gt)
-            seld_metric[epoch_cnt] = evaluation_metrics.early_stopping_metric(sed_metric[epoch_cnt, :], doa_metric[epoch_cnt, :])
-
-            # Calculate the DCASE 2020 metrics - Location-aware detection and Class-aware localization scores
-            cls_new_metric = SELD_evaluation_metrics.SELDMetrics(nb_classes=data_gen_val.get_nb_classes(), doa_threshold=params['lad_doa_thresh'])
+            # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
+            cls_metric = SELD_evaluation_metrics.SELDMetrics(nb_classes=data_gen_val.get_nb_classes(), doa_threshold=params['lad_doa_thresh'])
             pred_dict = feat_cls.regression_label_format_to_output_format(
                 sed_pred, doa_pred
             )
@@ -241,50 +213,41 @@ def main(argv):
             pred_blocks_dict = feat_cls.segment_labels(pred_dict, sed_pred.shape[0])
             gt_blocks_dict = feat_cls.segment_labels(gt_dict, sed_gt.shape[0])
 
-            cls_new_metric.update_seld_scores_xyz(pred_blocks_dict, gt_blocks_dict)
-            new_metric[epoch_cnt, :] = cls_new_metric.compute_seld_scores()
-            new_seld_metric[epoch_cnt] = evaluation_metrics.early_stopping_metric(new_metric[epoch_cnt, :2], new_metric[epoch_cnt, 2:])
+            cls_metric.update_seld_scores_xyz(pred_blocks_dict, gt_blocks_dict)
+            seld_metric[epoch_cnt, :] = cls_metric.compute_seld_scores()
+            early_stop_metric[epoch_cnt] = SELD_evaluation_metrics.early_stopping_metric(seld_metric[epoch_cnt, :2], seld_metric[epoch_cnt, 2:])
 
             # Visualize the metrics with respect to epochs
-            plot_functions(unique_name, tr_loss, sed_metric, doa_metric, seld_metric, new_metric, new_seld_metric)
+            plot_functions(unique_name, tr_loss, seld_metric, early_stop_metric)
 
             patience_cnt += 1
-            if new_seld_metric[epoch_cnt] < best_seld_metric:
-                best_seld_metric = new_seld_metric[epoch_cnt]
+            if early_stop_metric[epoch_cnt] < best_seld_metric:
+                best_seld_metric = early_stop_metric[epoch_cnt]
                 best_epoch = epoch_cnt
                 model.save(model_name)
                 patience_cnt = 0
 
             print(
                 'epoch_cnt: {}, time: {:0.2f}s, tr_loss: {:0.2f}, '
-                '\n\t\t DCASE2019 SCORES: ER: {:0.2f}, F: {:0.1f}, DE: {:0.1f}, FR:{:0.1f}, seld_score: {:0.2f}, ' 
-                '\n\t\t DCASE2020 SCORES: ER: {:0.2f}, F: {:0.1f}, DE: {:0.1f}, DE_F:{:0.1f}, seld_score (early stopping score): {:0.2f}, '
+                '\n\t\t DCASE2021 SCORES: ER: {:0.2f}, F: {:0.1f}, DE: {:0.1f}, DE_F:{:0.1f}, seld_score (early stopping score): {:0.2f}, '
                 'best_seld_score: {:0.2f}, best_epoch : {}\n'.format(
                     epoch_cnt, time.time() - start, tr_loss[epoch_cnt],
-                    sed_metric[epoch_cnt, 0], sed_metric[epoch_cnt, 1]*100,
-                    doa_metric[epoch_cnt, 0], doa_metric[epoch_cnt, 1]*100, seld_metric[epoch_cnt],
-                    new_metric[epoch_cnt, 0], new_metric[epoch_cnt, 1]*100,
-                    new_metric[epoch_cnt, 2], new_metric[epoch_cnt, 3]*100,
-                    new_seld_metric[epoch_cnt], best_seld_metric, best_epoch
+                    seld_metric[epoch_cnt, 0], seld_metric[epoch_cnt, 1]*100,
+                    seld_metric[epoch_cnt, 2], seld_metric[epoch_cnt, 3]*100,
+                    early_stop_metric[epoch_cnt], best_seld_metric, best_epoch
                 )
             )
             if patience_cnt > params['patience']:
                 break
 
-        avg_scores_val.append([new_metric[best_epoch, 0], new_metric[best_epoch, 1], new_metric[best_epoch, 2],
-                               new_metric[best_epoch, 3], best_seld_metric])
         print('\nResults on validation split:')
         print('\tUnique_name: {} '.format(unique_name))
         print('\tSaved model for the best_epoch: {}'.format(best_epoch))
         print('\tSELD_score (early stopping score) : {}'.format(best_seld_metric))
 
-        print('\n\tDCASE2020 scores')
-        print('\tClass-aware localization scores: DOA_error: {:0.1f}, F-score: {:0.1f}'.format(new_metric[best_epoch, 2], new_metric[best_epoch, 3]*100))
-        print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(new_metric[best_epoch, 0], new_metric[best_epoch, 1]*100))
-
-        print('\n\tDCASE2019 scores')
-        print('\tLocalization-only scores: DOA_error: {:0.1f}, Frame recall: {:0.1f}'.format(doa_metric[best_epoch, 0], doa_metric[best_epoch, 1]*100))
-        print('\tDetection-only scores: Error rate: {:0.2f}, F-score: {:0.1f}\n'.format(sed_metric[best_epoch, 0], sed_metric[best_epoch, 1]*100))
+        print('\n\tDCASE2021 scores')
+        print('\tClass-aware localization scores: DOA_error: {:0.1f}, F-score: {:0.1f}'.format(seld_metric[best_epoch, 2], seld_metric[best_epoch, 3]*100))
+        print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(seld_metric[best_epoch, 0], seld_metric[best_epoch, 1]*100))
 
         # ------------------  Calculate metric scores for unseen test split ---------------------------------
         print('\nLoading the best model and predicting results on the testing split')
@@ -301,11 +264,11 @@ def main(argv):
         )
         if params['is_accdoa']:
             test_sed_pred, test_doa_pred = get_accdoa_labels(pred_test, nb_classes)
-            test_sed_pred = evaluation_metrics.reshape_3Dto2D(test_sed_pred)
-            test_doa_pred = evaluation_metrics.reshape_3Dto2D(test_doa_pred)
+            test_sed_pred = SELD_evaluation_metrics.reshape_3Dto2D(test_sed_pred)
+            test_doa_pred = SELD_evaluation_metrics.reshape_3Dto2D(test_doa_pred)
         else:
-            test_sed_pred = evaluation_metrics.reshape_3Dto2D(pred_test[0]) > 0.5
-            test_doa_pred = evaluation_metrics.reshape_3Dto2D(pred_test[1] if params['doa_objective'] is 'mse' else pred_test[1][:, :, nb_classes:])
+            test_sed_pred = SELD_evaluation_metrics.reshape_3Dto2D(pred_test[0]) > 0.5
+            test_doa_pred = SELD_evaluation_metrics.reshape_3Dto2D(pred_test[1] if params['doa_objective'] is 'mse' else pred_test[1][:, :, nb_classes:])
 
         if params['dcase_output']:
             # Dump results in DCASE output format for calculating final scores
@@ -331,17 +294,12 @@ def main(argv):
 
         if params['mode'] is 'dev':
             test_data_in, test_data_out = data_gen_test.get_data_sizes()
-            test_gt = collect_test_labels(data_gen_test, test_data_out, nb_classes, params['quick_test'], params['is_accdoa'])
-            test_sed_gt = evaluation_metrics.reshape_3Dto2D(test_gt[0])
-            test_doa_gt = evaluation_metrics.reshape_3Dto2D(test_gt[1])
+            test_gt = collect_test_labels(data_gen_test, test_data_out, nb_classes, params['quick_test'], params['is_accdoa'], params['doa_objective'])
+            test_sed_gt = SELD_evaluation_metrics.reshape_3Dto2D(test_gt[0])
+            test_doa_gt = SELD_evaluation_metrics.reshape_3Dto2D(test_gt[1])
          
-            # Calculate DCASE2019 scores
-            test_sed_loss = evaluation_metrics.compute_sed_scores(test_sed_pred, test_sed_gt, data_gen_test.nb_frames_1s())
-            test_doa_loss = evaluation_metrics.compute_doa_scores_regr_xyz(test_doa_pred, test_doa_gt, test_sed_pred, test_sed_gt)
-            test_metric_loss = evaluation_metrics.early_stopping_metric(test_sed_loss, test_doa_loss)
-
-            # Calculate DCASE2020 scores
-            cls_new_metric = SELD_evaluation_metrics.SELDMetrics(nb_classes=data_gen_test.get_nb_classes(), doa_threshold=params['lad_doa_thresh'])
+            # Calculate DCASE2021 scores
+            cls_test_metric = SELD_evaluation_metrics.SELDMetrics(nb_classes=data_gen_test.get_nb_classes(), doa_threshold=params['lad_doa_thresh'])
             test_pred_dict = feat_cls.regression_label_format_to_output_format(
                 test_sed_pred, test_doa_pred
             )
@@ -352,21 +310,17 @@ def main(argv):
             test_pred_blocks_dict = feat_cls.segment_labels(test_pred_dict, test_sed_pred.shape[0])
             test_gt_blocks_dict = feat_cls.segment_labels(test_gt_dict, test_sed_gt.shape[0])
 
-            cls_new_metric.update_seld_scores_xyz(test_pred_blocks_dict, test_gt_blocks_dict)
-            test_new_metric = cls_new_metric.compute_seld_scores()
-            test_new_seld_metric = evaluation_metrics.early_stopping_metric(test_new_metric[:2], test_new_metric[2:])
+            cls_test_metric.update_seld_scores_xyz(test_pred_blocks_dict, test_gt_blocks_dict)
+            test_seld_metric = cls_test_metric.compute_seld_scores()
+            test_early_stop_metric = SELD_evaluation_metrics.early_stopping_metric(test_seld_metric[:2], test_seld_metric[2:])
 
-            avg_scores_test.append([test_new_metric[0], test_new_metric[1], test_new_metric[2], test_new_metric[3], test_new_seld_metric])
             print('Results on test split:')
 
-            print('\tDCASE2020 Scores')
-            print('\tClass-aware localization scores: DOA Error: {:0.1f}, F-score: {:0.1f}'.format(test_new_metric[2], test_new_metric[3]*100))
-            print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(test_new_metric[0], test_new_metric[1]*100))
-            print('\tSELD (early stopping metric): {:0.2f}'.format(test_new_seld_metric))
+            print('\tDCASE2021 Scores')
+            print('\tClass-aware localization scores: DOA Error: {:0.1f}, F-score: {:0.1f}'.format(test_seld_metric[2], test_seld_metric[3]*100))
+            print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(test_seld_metric[0], test_seld_metric[1]*100))
+            print('\tSELD (early stopping metric): {:0.2f}'.format(test_early_stop_metric))
 
-            print('\n\tDCASE2019 Scores')
-            print('\tLocalization-only scores: DOA Error: {:0.1f}, Frame recall: {:0.1f}'.format(test_doa_loss[0], test_doa_loss[1]*100))
-            print('\tDetection-only scores:Error rate: {:0.2f}, F-score: {:0.1f}'.format(test_sed_loss[0], test_sed_loss[1]*100))
 
 
 if __name__ == "__main__":

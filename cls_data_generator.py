@@ -21,6 +21,7 @@ class DataGenerator(object):
         self._feature_seq_len = params['feature_sequence_length']
         self._label_seq_len = params['label_sequence_length']
         self._is_accdoa = params['is_accdoa']
+        self._doa_objective = params['doa_objective']
         self._shuffle = shuffle
         self._feat_cls = cls_feature_class.FeatureClass(params=params, is_eval=self._is_eval)
         self._label_dir = self._feat_cls.get_label_dir()
@@ -80,7 +81,7 @@ class DataGenerator(object):
             else:
                 label_shape = [
                     (self._batch_size, self._label_seq_len, self._nb_classes),
-                    (self._batch_size, self._label_seq_len, self._nb_classes*3)
+                    (self._batch_size, self._label_seq_len, self._nb_classes*3) 
                 ]
         return feat_shape, label_shape
 
@@ -208,7 +209,7 @@ class DataGenerator(object):
                     else:
                          label = [
                             label[:, :, :self._nb_classes],  # SED labels
-                            label # SED + DOA labels
+                            label[:, :, self._nb_classes:] if self._doa_objective is 'mse' else label # SED + DOA labels
                              ]
                     yield feat, label
 

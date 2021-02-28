@@ -11,12 +11,12 @@ def get_params(argv='1'):
         quick_test=False,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         # INPUT PATH
-        dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_ALL_TARGET_CLASSES/target_noisy',  # Base folder containing the foa/mic and metadata folders
+        dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATH
-        feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_ALL_TARGET_CLASSES/target_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
+        feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
         model_dir='models/',   # Dumps the trained models and training curves in this folder
-        dcase_output=False,     # If true, dumps the results recording-wise in 'dcase_dir' path.
+        dcase_output=True,     # If true, dumps the results recording-wise in 'dcase_dir' path.
                                # Set this true after you have finalized your model, save the output, and submit
         dcase_dir='results/',  # Dumps the recording-wise network output in this folder
 
@@ -43,8 +43,8 @@ def get_params(argv='1'):
         loss_weights=[1., 1000.],     # [sed, doa] weight for scaling the DNN outputs
         nb_epochs=50,               # Train for maximum epochs
         epochs_per_fit=5,           # Number of epochs per fit
-        doa_objective='masked_mse',     # supports: mse, masked_mse. mse- original seld approach; masked_mse - dcase 2020 approach
-        is_accdoa=True,
+        is_accdoa=True,             # True: Use ACCDOA output format
+        doa_objective='mse',        # if is_accdoa=True this is ignored, otherwise it supports: mse, masked_mse. where mse- original seld approach; masked_mse - dcase 2020 approach
 
         #METRIC PARAMETERS
         lad_doa_thresh=20

@@ -40,7 +40,7 @@ def plot_func(plot_data, hop_len_s, ind, plot_x_ax=False, plot_y_ax=False):
 params = parameter.get_params()
 
 # output format file to visualize
-pred = os.path.join(params['dcase_dir'], '2_mic_dev/fold1_room1_mix006_ov1.csv')
+pred = os.path.join(params['dcase_dir'], '2_mic_dev/fold6_room1_mix001.csv')
 
 # path of reference audio directory for visualizing the spectrogram and description directory for
 # visualizing the reference
@@ -78,6 +78,7 @@ ax4 = plot.subplot(gs[2, 2:]), plot_func(pred_data, params['label_hop_len_s'], i
 ax5 = plot.subplot(gs[3, :2]), plot_func(ref_data, params['label_hop_len_s'], ind=3, plot_y_ax=True), plot.ylim([-90, 90]), plot.title('Elevation reference')
 ax6 = plot.subplot(gs[3, 2:]), plot_func(pred_data, params['label_hop_len_s'], ind=3), plot.ylim([-90, 90]), plot.title('Elevation predicted')
 ax_lst = [ax0, ax1, ax2, ax3, ax4, ax5, ax6]
-plot.savefig(os.path.join(params['dcase_dir'] , ref_filename.replace('.wav', '.jpg')), dpi=300, bbox_inches = "tight")
-
+fig_file = os.path.join(params['dcase_dir'] , ref_filename.replace('.wav', '.jpg'))
+plot.savefig(fig_file, dpi=300, bbox_inches = "tight")
+print('Saved figure at : {}'.format(fig_file))
 
