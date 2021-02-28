@@ -1,12 +1,12 @@
 -----------COPYRIGHT NOTICE STARTS WITH THIS LINE------------
-Copyright (c) 2020 Tampere University and its licensors
+Copyright (c) 2021 Tampere University and its licensors
 All rights reserved.
 
 Permission is hereby granted, without written agreement and without
 license or royalty fees, to use and copy the code for the Sound Event
 Localization and Detection using Convolutional Recurrent Neural Network
 method/architecture, present in the GitHub repository with the handle
-seld-dcase2020, (“Work”) described in the paper with title "Sound event
+seld-dcase2021, (“Work”) described in the paper with title "Sound event
 localization and detection of overlapping sources using 
 convolutional recurrent neural network" and composed of files with
 code in the Python programming language. This grant is only for experimental and

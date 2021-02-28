@@ -1,5 +1,5 @@
 -----------COPYRIGHT NOTICE STARTS WITH THIS LINE------------
-Copyright (c) 2020 Tampere University and its licensors
+Copyright (c) 2021 Tampere University and its licensors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this script, SELD_evaluation_metrics.py (the "Software"), to deal
