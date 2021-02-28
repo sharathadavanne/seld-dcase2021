@@ -11,10 +11,10 @@ def get_params(argv='1'):
         quick_test=False,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         # INPUT PATH
-        dataset_dir='/scratch/asignal/sharath/DCASE2020_SELD_dataset/',  # Base folder containing the foa/mic and metadata folders
+        dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_ALL_TARGET_CLASSES/target_noisy',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATH
-        feat_label_dir='/scratch/asignal/sharath/DCASE2020_SELD_dataset/seld_feat_label/',  # Directory to dump extracted features and labels
+        feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_ALL_TARGET_CLASSES/target_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
         model_dir='models/',   # Dumps the trained models and training curves in this folder
         dcase_output=False,     # If true, dumps the results recording-wise in 'dcase_dir' path.
                                # Set this true after you have finalized your model, save the output, and submit
@@ -22,7 +22,7 @@ def get_params(argv='1'):
 
         # DATASET LOADING PARAMETERS
         mode='dev',         # 'dev' - development or 'eval' - evaluation dataset
-        dataset='foa',       # 'foa' - ambisonic or 'mic' - microphone signals
+        dataset='mic',       # 'foa' - ambisonic or 'mic' - microphone signals
 
         #FEATURE PARAMS
         fs=24000,
@@ -60,18 +60,15 @@ def get_params(argv='1'):
             'baby': 1,
             'crash': 2,
             'dog': 3,
-            'engine': 4,
-            'female_scream': 5,
-            'female_speech': 6,
-            'fire': 7,
-            'footsteps': 8,
-            'knock': 9,
-            'male_scream': 10,
-            'male_speech': 11,
-            'phone': 12,
-            'piano': 13
+            'female_scream': 4,
+            'female_speech': 5,
+            'footsteps': 6,
+            'knock': 7,
+            'male_scream': 8,
+            'male_speech': 9,
+            'phone': 10,
+            'piano': 11 #, 'engine':12, 'fire':13
         }
-
 
     # ########### User defined parameters ##############
     if argv == '1':

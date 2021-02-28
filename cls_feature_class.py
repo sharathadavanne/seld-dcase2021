@@ -6,7 +6,7 @@ import os
 import numpy as np
 import scipy.io.wavfile as wav
 from sklearn import preprocessing
-from sklearn.externals import joblib
+import joblib
 from IPython import embed
 import matplotlib.pyplot as plot
 import librosa

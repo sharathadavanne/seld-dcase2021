@@ -130,14 +130,14 @@ def main(argv):
     train_splits, val_splits, test_splits = None, None, None
 
     if params['mode'] == 'dev':
-        test_splits = [1]
-        val_splits = [2]
-        train_splits = [[3, 4, 5, 6]]
+        test_splits = [6]
+        val_splits = [5]
+        train_splits = [[1, 2, 3, 4]]
 
     elif params['mode'] == 'eval':
         test_splits = [[7, 8]]
-        val_splits = [[1]]
-        train_splits = [[2, 3, 4, 5, 6]]
+        val_splits = [[6]]
+        train_splits = [[1, 2, 3, 4, 5]]
 
     avg_scores_val = []
     avg_scores_test = []
@@ -300,7 +300,7 @@ def main(argv):
             verbose=2
         )
         if params['is_accdoa']:
-            test_sed_pred, test_doa_pred = get_accdoa_labels(pred, nb_classes)
+            test_sed_pred, test_doa_pred = get_accdoa_labels(pred_test, nb_classes)
             test_sed_pred = evaluation_metrics.reshape_3Dto2D(test_sed_pred)
             test_doa_pred = evaluation_metrics.reshape_3Dto2D(test_doa_pred)
         else:
