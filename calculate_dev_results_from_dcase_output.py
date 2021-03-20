@@ -61,25 +61,18 @@ for score_type in score_type_list:
             # Load predicted output format file
             pred_dict = feat_cls.load_output_format_file(os.path.join(pred_output_format_files, pred_file))
             if use_polar_format:
-                pred_dict_polar = feat_cls.convert_output_format_cartesian_to_polar(pred_dict)
-                pred_labels = feat_cls.segment_labels(pred_dict_polar, feat_cls.get_nb_frames())
-            else:
-                pred_labels = feat_cls.segment_labels(pred_dict, feat_cls.get_nb_frames())
+                pred_dict = feat_cls.convert_output_format_cartesian_to_polar(pred_dict)
 
             # Load reference description file
-            gt_dict_polar = feat_cls.load_output_format_file(os.path.join(ref_desc_files, pred_file.replace('.npy', '.csv')))
-            if use_polar_format:
-                gt_labels = feat_cls.segment_labels(gt_dict_polar, feat_cls.get_nb_frames())
-            else:
-                gt_dict = feat_cls.convert_output_format_polar_to_cartesian(gt_dict_polar)
-                gt_labels = feat_cls.segment_labels(gt_dict, feat_cls.get_nb_frames())
+            gt_dict = feat_cls.load_output_format_file(os.path.join(ref_desc_files, pred_file.replace('.npy', '.csv')))
+            if not use_polar_format:
+                gt_dict = feat_cls.convert_output_format_polar_to_cartesian(gt_dict)
+
+            pred_labels = feat_cls.segment_labels(pred_dict, feat_cls.get_nb_frames())
+            gt_labels = feat_cls.segment_labels(gt_dict, feat_cls.get_nb_frames())
 
             # Calculated scores
-            if use_polar_format:
-                eval.update_seld_scores(pred_labels, gt_labels)
-            else:
-                eval.update_seld_scores_xyz(pred_labels, gt_labels)
-
+            eval.update_seld_scores(pred_labels, gt_labels)
 
         # Overall SED and DOA scores
         er, f, de, de_f = eval.compute_seld_scores()

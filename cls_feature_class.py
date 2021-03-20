@@ -287,9 +287,9 @@ class FeatureClass:
             if _frame_ind not in _output_dict:
                 _output_dict[_frame_ind] = []
             if len(_words) == 5: #read polar coordinates format, we ignore the track count 
-                _output_dict[_frame_ind].append([int(_words[1]), float(_words[3]), float(_words[4])])
+                _output_dict[_frame_ind].append([int(_words[1]), float(_words[3]), float(_words[4]), int(_words[2])])
             elif len(_words) == 6: # read Cartesian coordinates format, we ignore the track count
-                _output_dict[_frame_ind].append([int(_words[1]), float(_words[3]), float(_words[4]), float(_words[5])])
+                _output_dict[_frame_ind].append([int(_words[1]), float(_words[3]), float(_words[4]), float(_words[5]), int(_words[2])])
         _fid.close()
         return _output_dict
 
@@ -397,7 +397,7 @@ class FeatureClass:
                     x = np.cos(azi_rad) * tmp_label
                     y = np.sin(azi_rad) * tmp_label
                     z = np.sin(ele_rad)
-                    out_dict[frame_cnt].append([tmp_val[0], x, y, z])
+                    out_dict[frame_cnt].append([tmp_val[0], x, y, z, tmp_val[-1]])
         return out_dict
 
     def convert_output_format_cartesian_to_polar(self, in_dict):
@@ -412,7 +412,7 @@ class FeatureClass:
                     azimuth = np.arctan2(y, x) * 180 / np.pi
                     elevation = np.arctan2(z, np.sqrt(x**2 + y**2)) * 180 / np.pi
                     r = np.sqrt(x**2 + y**2 + z**2)
-                    out_dict[frame_cnt].append([tmp_val[0], azimuth, elevation])
+                    out_dict[frame_cnt].append([tmp_val[0], azimuth, elevation, tmp_val[-1]])
         return out_dict
 
     # ------------------------------- Misc public functions -------------------------------
