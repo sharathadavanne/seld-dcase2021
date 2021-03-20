@@ -11,6 +11,7 @@ from IPython import embed
 import matplotlib.pyplot as plot
 import librosa
 plot.switch_backend('agg')
+import shutil
 import math
 
 
@@ -465,6 +466,9 @@ class FeatureClass:
 
 
 def create_folder(folder_name):
-    if not os.path.exists(folder_name):
-        print('{} folder does not exist, creating it.'.format(folder_name))
-        os.makedirs(folder_name)
+    os.makedirs(folder_name, exist_ok=True)
+
+def delete_and_create_folder(folder_name):
+    if os.path.exists(folder_name) and os.path.isdir(folder_name):
+        shutil.rmtree(folder_name)
+    os.makedirs(folder_name, exist_ok=True)

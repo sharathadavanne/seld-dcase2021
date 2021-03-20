@@ -16,13 +16,11 @@ def get_params(argv='1'):
         # OUTPUT PATH
         feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
         model_dir='models/',   # Dumps the trained models and training curves in this folder
-        dcase_output=True,     # If true, dumps the results recording-wise in 'dcase_dir' path.
-                               # Set this true after you have finalized your model, save the output, and submit
-        dcase_dir='results/',  # Dumps the recording-wise network output in this folder
+        dcase_output_dir='results/',# recording-wise results are dumped in this path.
 
         # DATASET LOADING PARAMETERS
         mode='dev',         # 'dev' - development or 'eval' - evaluation dataset
-        dataset='mic',       # 'foa' - ambisonic or 'mic' - microphone signals
+        dataset='foa',       # 'foa' - ambisonic or 'mic' - microphone signals
 
         #FEATURE PARAMS
         fs=24000,
@@ -67,7 +65,7 @@ def get_params(argv='1'):
             'male_scream': 8,
             'male_speech': 9,
             'phone': 10,
-            'piano': 11 #, 'engine':12, 'fire':13
+            'piano': 11, 'engine':12, 'fire':13
         }
 
     # ########### User defined parameters ##############

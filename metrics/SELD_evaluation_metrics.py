@@ -25,6 +25,7 @@ class SELDMetrics(object):
         :param nb_classes: Number of sound classes. In the paper, nb_classes = 11
         :param doa_thresh: DOA threshold for location sensitive detection.
         '''
+        self._nb_classes = nb_classes
 
         # Variables for Location-senstive detection performance
         self._TP = 0
@@ -36,15 +37,14 @@ class SELDMetrics(object):
         self._I = 0
         self._Nref = 0
 
+        self._spatial_T = doa_threshold
+
         # Variables for Class-sensitive localization performance
         self._total_DE = 0
 
         self._DE_TP = 0
         self._DE_FP = 0
         self._DE_FN = 0
-
-        self._spatial_T = doa_threshold
-        self._nb_classes = nb_classes
 
     def compute_seld_scores(self):
         '''
@@ -238,6 +238,4 @@ def early_stopping_metric(sed_error, doa_error):
         )
     return seld_metric
 
-def reshape_3Dto2D(A):
-    return A.reshape(A.shape[0] * A.shape[1], A.shape[2])
 
