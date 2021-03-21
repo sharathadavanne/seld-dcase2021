@@ -11,10 +11,10 @@ def get_params(argv='1'):
         quick_test=False,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
 
         # INPUT PATH
-        dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy',  # Base folder containing the foa/mic and metadata folders
+        dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_interf_noisy',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATH
-        feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
+        feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_interf_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
         model_dir='models/',   # Dumps the trained models and training curves in this folder
         dcase_output_dir='results/',# recording-wise results are dumped in this path.
 
@@ -32,7 +32,7 @@ def get_params(argv='1'):
         # DNN MODEL PARAMETERS
         label_sequence_length=60,        # Feature sequence length
         batch_size=256,              # Batch size
-        dropout_rate=0,             # Dropout rate, constant for all layers
+        dropout_rate=0.05,             # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
 
@@ -65,7 +65,7 @@ def get_params(argv='1'):
             'male_scream': 8,
             'male_speech': 9,
             'phone': 10,
-            'piano': 11, 'engine':12, 'fire':13
+            'piano': 11#, 'engine':12, 'fire':13
         }
 
     # ########### User defined parameters ##############
