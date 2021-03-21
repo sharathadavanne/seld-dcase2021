@@ -11,8 +11,28 @@ from cls_compute_seld_results import ComputeSELDResults, reshape_3Dto2D
 import keras_model
 import parameter
 import time
-import shutil
-from IPython import embed
+
+def dump_DCASE2021_results(_data_gen, _feat_cls, _dcase_output_folder, _sed_pred, _doa_pred):
+    '''
+    Write the filewise results to individual csv files
+    '''
+
+    # Number of frames for a 60 second audio with 100ms hop length = 600 frames
+    max_frames_with_content = _data_gen.get_nb_frames()
+
+    # Number of frames in one batch (batch_size* sequence_length) consists of all the 600 frames above with
+    # zero padding in the remaining frames
+    test_filelist = _data_gen.get_filelist()
+    frames_per_file = _data_gen.get_frame_per_file()
+    for file_cnt in range(_sed_pred.shape[0] // frames_per_file):
+        output_file = os.path.join(_dcase_output_folder, test_filelist[file_cnt].replace('.npy', '.csv'))
+        dc = file_cnt * frames_per_file
+        output_dict = _feat_cls.regression_label_format_to_output_format(
+            _sed_pred[dc:dc + max_frames_with_content, :],
+            _doa_pred[dc:dc + max_frames_with_content, :]
+        )
+        _data_gen.write_output_format_file(output_file, output_dict)
+    return
 
 
 def get_accdoa_labels(accdoa_in, nb_classes):
@@ -148,23 +168,7 @@ def main(argv):
                 doa_pred = reshape_3Dto2D(pred[1] if params['doa_objective'] is 'mse' else pred[1][:, :, nb_classes:])
             
             # Calculate the DCASE 2021 metrics - Location-aware detection and Class-aware localization scores
-
-            # Start by computing the filewise results on the validation data
-            test_filelist = data_gen_val.get_filelist()
-            # Number of frames for a 60 second audio with 100ms hop length = 600 frames
-            max_frames_with_content = data_gen_val.get_nb_frames()
-
-            # Number of frames in one batch (batch_size* sequence_length) consists of all the 600 frames above with
-            # zero padding in the remaining frames
-            frames_per_file = data_gen_val.get_frame_per_file()
-            for file_cnt in range(sed_pred.shape[0]//frames_per_file):
-                output_file = os.path.join(dcase_output_val_folder, test_filelist[file_cnt].replace('.npy', '.csv'))
-                dc = file_cnt * frames_per_file
-                output_dict = feat_cls.regression_label_format_to_output_format(
-                    sed_pred[dc:dc + max_frames_with_content, :],
-                    doa_pred[dc:dc + max_frames_with_content, :]
-                )
-                data_gen_val.write_output_format_file(output_file, output_dict)
+            dump_DCASE2021_results(data_gen_val, feat_cls, dcase_output_val_folder, sed_pred, doa_pred)
             seld_metric[epoch_cnt, :] = score_obj.get_SELD_Results(dcase_output_val_folder)
 
             patience_cnt += 1
@@ -176,7 +180,7 @@ def main(argv):
 
             print(
                 'epoch_cnt: {}, time: {:0.2f}s, tr_loss: {:0.2f}, '
-                '\n\t\t DCASE2021 SCORES: ER: {:0.2f}, F: {:0.1f}, DE: {:0.1f}, DE_F:{:0.1f}, seld_score (early stopping score): {:0.2f}, '
+                '\n\t\t DCASE2021 SCORES: ER: {:0.2f}, F: {:0.1f}, LE: {:0.1f}, LR:{:0.1f}, seld_score (early stopping score): {:0.2f}, '
                 'best_seld_score: {:0.2f}, best_epoch : {}\n'.format(
                     epoch_cnt, time.time() - start, tr_loss[epoch_cnt],
                     seld_metric[epoch_cnt, 0], seld_metric[epoch_cnt, 1]*100,
@@ -193,7 +197,7 @@ def main(argv):
         print('\tSELD_score (early stopping score) : {}'.format(best_seld_metric))
 
         print('\n\tDCASE2021 scores')
-        print('\tClass-aware localization scores: DOA_error: {:0.1f}, F-score: {:0.1f}'.format(seld_metric[best_epoch, 2], seld_metric[best_epoch, 3]*100))
+        print('\tClass-aware localization scores: Localization Error: {:0.1f}, Localization Recall: {:0.1f}'.format(seld_metric[best_epoch, 2], seld_metric[best_epoch, 3]*100))
         print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(seld_metric[best_epoch, 0], seld_metric[best_epoch, 1]*100))
 
         # ------------------  Calculate metric scores for unseen test split ---------------------------------
@@ -223,34 +227,17 @@ def main(argv):
         dcase_output_test_folder = os.path.join(params['dcase_output_dir'], '{}_{}_{}_test'.format(task_id, params['dataset'], params['mode']))
         cls_feature_class.delete_and_create_folder(dcase_output_test_folder)
         print('Dumping recording-wise test results in: {}'.format(dcase_output_test_folder))
-
-        test_filelist = data_gen_test.get_filelist()
-        # Number of frames for a 60 second audio with 100ms hop length = 600 frames
-        max_frames_with_content = data_gen_test.get_nb_frames()
-
-        # Number of frames in one batch (batch_size* sequence_length) consists of all the 600 frames above with
-        # zero padding in the remaining frames
-        frames_per_file = data_gen_test.get_frame_per_file()
-        for file_cnt in range(test_sed_pred.shape[0]//frames_per_file):
-            output_file = os.path.join(dcase_output_test_folder, test_filelist[file_cnt].replace('.npy', '.csv'))
-            dc = file_cnt * frames_per_file
-            output_dict = feat_cls.regression_label_format_to_output_format(
-                test_sed_pred[dc:dc + max_frames_with_content, :],
-                test_doa_pred[dc:dc + max_frames_with_content, :]
-            )
-            data_gen_test.write_output_format_file(output_file, output_dict)
+        dump_DCASE2021_results(data_gen_test, feat_cls, dcase_output_test_folder, test_sed_pred, test_doa_pred)
 
         if params['mode'] is 'dev':
             # Calculate DCASE2021 scores
             test_seld_metric = score_obj.get_SELD_Results(dcase_output_val_folder)
 
             print('Results on test split:')
-
             print('\tDCASE2021 Scores')
-            print('\tClass-aware localization scores: DOA Error: {:0.1f}, F-score: {:0.1f}'.format(test_seld_metric[2], test_seld_metric[3]*100))
+            print('\tClass-aware localization scores: Localization Error: {:0.1f}, Localization Recall: {:0.1f}'.format(test_seld_metric[2], test_seld_metric[3]*100))
             print('\tLocation-aware detection scores: Error rate: {:0.2f}, F-score: {:0.1f}'.format(test_seld_metric[0], test_seld_metric[1]*100))
             print('\tSELD (early stopping metric): {:0.2f}'.format(test_seld_metric[-1]))
-
 
 
 if __name__ == "__main__":

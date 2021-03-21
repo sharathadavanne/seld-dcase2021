@@ -71,10 +71,10 @@ class ComputeSELDResults(object):
             eval.update_seld_scores(pred_labels, self._ref_labels[pred_file])
 
         # Overall SED and DOA scores
-        er, f, de, de_f = eval.compute_seld_scores()
-        seld_scr = SELD_evaluation_metrics.early_stopping_metric([er, f], [de, de_f])
+        ER, F, LE, LR = eval.compute_seld_scores()
+        seld_scr = SELD_evaluation_metrics.early_stopping_metric([ER, F], [LE, LR])
 
-        return er, f, de, de_f, seld_scr
+        return ER, F, LE, LR, seld_scr
 
     def get_consolidated_SELD_results(self, pred_files_path, score_type_list=['all', 'room']):
         '''
@@ -115,13 +115,13 @@ class ComputeSELDResults(object):
                     eval.update_seld_scores(pred_labels, self._ref_labels[pred_file])
 
                 # Overall SED and DOA scores
-                er, f, de, de_f = eval.compute_seld_scores()
-                seld_scr = SELD_evaluation_metrics.early_stopping_metric([er, f], [de, de_f])
+                ER, F, LE, LR = eval.compute_seld_scores()
+                seld_scr = SELD_evaluation_metrics.early_stopping_metric([ER, F], [LE, LR])
 
                 print('\nAverage score for {} {} data using {} coordinates'.format(score_type, 'fold' if score_type=='all' else split_key, 'Polar' if self._use_polar_format else 'Cartesian' ))
                 print('SELD score (early stopping metric): {:0.2f}'.format(seld_scr))
-                print('SED metrics: Error rate: {:0.2f}, F-score:{:0.1f}'.format(er, 100*f))
-                print('DOA metrics: DOA error: {:0.1f}, F-score:{:0.1f}'.format(de, 100*de_f))
+                print('SED metrics: Error rate: {:0.2f}, F-score:{:0.1f}'.format(ER, 100*F))
+                print('DOA metrics: Localization error: {:0.1f}, Localization Recall: {:0.1f}'.format(LE, 100*LR))
 
 def reshape_3Dto2D(A):
     return A.reshape(A.shape[0] * A.shape[1], A.shape[2])
@@ -132,10 +132,10 @@ if __name__ == "__main__":
     pred_output_format_files = 'results/4_foa_dev'
 
     score_obj = ComputeSELDResults(parameter.get_params(), ref_files_folder=ref_files_folder)
-    er, f, de, de_f, seld_scr = score_obj.get_SELD_Results(pred_output_format_files)
+    ER, F, LE, LR, seld_scr = score_obj.get_SELD_Results(pred_output_format_files)
     print('SELD score (early stopping metric): {:0.2f}'.format(seld_scr))
-    print('SED metrics: Error rate: {:0.2f}, F-score:{:0.1f}'.format(er, 100*f))
-    print('DOA metrics: DOA error: {:0.1f}, F-score:{:0.1f}'.format(de, 100*de_f))
+    print('SED metrics: Error rate: {:0.2f}, F-score:{:0.1f}'.format(ER, 100*F))
+    print('DOA metrics: Localization error: {:0.1f}, Localization Recall: {:0.1f}'.format(LE, 100*LR))
 
     score_obj.get_consolidated_SELD_results(pred_output_format_files)
 

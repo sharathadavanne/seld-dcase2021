@@ -8,18 +8,18 @@ def get_params(argv='1'):
     print("SET: {}".format(argv))
     # ########### default parameters ##############
     params = dict(
-        quick_test=False,     # To do quick test. Trains/test on small subset of dataset, and # of epochs
+        quick_test=False,           # If True: Trains/test on small subset of dataset, and # of epochs
 
         # INPUT PATH
         dataset_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_interf_noisy',  # Base folder containing the foa/mic and metadata folders
 
         # OUTPUT PATH
         feat_label_dir='/scratch/asignal/sharath/DCASE2021_SELD_dataset/DB_REDUCED_TARGET_CLASSES/target_interf_noisy/seld_feat_label/',  # Directory to dump extracted features and labels
-        model_dir='models/',   # Dumps the trained models and training curves in this folder
-        dcase_output_dir='results/',# recording-wise results are dumped in this path.
+        model_dir='models/',            # Dumps the trained models and training curves in this folder
+        dcase_output_dir='results/',    # recording-wise results are dumped in this path.
 
         # DATASET LOADING PARAMETERS
-        mode='dev',         # 'dev' - development or 'eval' - evaluation dataset
+        mode='dev',          # 'dev' - development or 'eval' - evaluation dataset
         dataset='foa',       # 'foa' - ambisonic or 'mic' - microphone signals
 
         #FEATURE PARAMS
@@ -30,21 +30,22 @@ def get_params(argv='1'):
         nb_mel_bins=64,
 
         # DNN MODEL PARAMETERS
-        label_sequence_length=60,        # Feature sequence length
-        batch_size=256,              # Batch size
-        dropout_rate=0.05,             # Dropout rate, constant for all layers
+        is_accdoa=True,             # True: Use ACCDOA output format
+        doa_objective='mse',        # if is_accdoa=True this is ignored, otherwise it supports: mse, masked_mse. where mse- original seld approach; masked_mse - dcase 2020 approach
+
+        label_sequence_length=60,   # Feature sequence length
+        batch_size=256,             # Batch size
+        dropout_rate=0.05,          # Dropout rate, constant for all layers
         nb_cnn2d_filt=64,           # Number of CNN nodes, constant for each layer
         f_pool_size=[4, 4, 2],      # CNN frequency pooling, length of list = number of CNN layers, list value = pooling per layer
 
         rnn_size=[128, 128],        # RNN contents, length of list = number of layers, list value = number of nodes
         fnn_size=[128],             # FNN contents, length of list = number of layers, list value = number of nodes
-        loss_weights=[1., 1000.],     # [sed, doa] weight for scaling the DNN outputs
+        loss_weights=[1., 1000.],   # [sed, doa] weight for scaling the DNN outputs
         nb_epochs=50,               # Train for maximum epochs
         epochs_per_fit=5,           # Number of epochs per fit
-        is_accdoa=True,             # True: Use ACCDOA output format
-        doa_objective='mse',        # if is_accdoa=True this is ignored, otherwise it supports: mse, masked_mse. where mse- original seld approach; masked_mse - dcase 2020 approach
 
-        #METRIC PARAMETERS
+        # METRIC PARAMETERS
         lad_doa_thresh=20
        
     )
