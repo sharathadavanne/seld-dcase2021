@@ -137,8 +137,8 @@ class FeatureClass:
                 cnt += 1
         return gcc_feat.reshape((linear_spectra.shape[0], self._nb_mel_bins*gcc_channels))
 
-    def _get_spectrogram_for_file(self, audio_filename):
-        audio_in, fs = self._load_audio(os.path.join(self._aud_dir, audio_filename))
+    def _get_spectrogram_for_file(self, audio_path):
+        audio_in, fs = self._load_audio(audio_path)
         audio_spec = self._spectrogram(audio_in)
         return audio_spec
 
@@ -179,35 +179,31 @@ class FeatureClass:
         print('Extracting spectrogram:')
         print('\t\taud_dir {}\n\t\tdesc_dir {}\n\t\tfeat_dir {}'.format(
             self._aud_dir, self._desc_dir, self._feat_dir))
+        for split in os.listdir(self._aud_dir):
+            print('Split: {}'.format(split))
+            for file_cnt, file_name in enumerate(os.listdir(os.path.join(self._aud_dir, split))):
+                wav_filename = '{}.wav'.format(file_name.split('.')[0])
+                spect = self._get_spectrogram_for_file(os.path.join(self._aud_dir, split, wav_filename))
 
-        for file_cnt, file_name in enumerate(os.listdir(self._aud_dir)):
-            wav_filename = '{}.wav'.format(file_name.split('.')[0])
-            spect = self._get_spectrogram_for_file(wav_filename)
+                #extract mel
+                mel_spect = self._get_mel_spectrogram(spect)
 
-            #extract mel
-            mel_spect = self._get_mel_spectrogram(spect)
+                feat = None
+                if self._dataset is 'foa':
+                    # extract intensity vectors
+                    foa_iv = self._get_foa_intensity_vectors(spect)
+                    feat = np.concatenate((mel_spect, foa_iv), axis=-1)
+                elif self._dataset is 'mic':
+                    # extract gcc
+                    gcc = self._get_gcc(spect)
+                    feat = np.concatenate((mel_spect, gcc), axis=-1)
+                else:
+                    print('ERROR: Unknown dataset format {}'.format(self._dataset))
+                    exit()
 
-            feat = None
-            if self._dataset is 'foa':
-                # extract intensity vectors
-                foa_iv = self._get_foa_intensity_vectors(spect)
-                feat = np.concatenate((mel_spect, foa_iv), axis=-1)
-            elif self._dataset is 'mic':
-                # extract gcc
-                gcc = self._get_gcc(spect)
-                feat = np.concatenate((mel_spect, gcc), axis=-1)
-            else:
-                print('ERROR: Unknown dataset format {}'.format(self._dataset))
-                exit()
-
-            # plot.figure()
-            # plot.subplot(211), plot.imshow(mel_spect.T)
-            # plot.subplot(212), plot.imshow(foa_iv.T)
-            # plot.show()
-
-            if feat is not None:
-                print('{}: {}, {}'.format(file_cnt, file_name, feat.shape ))
-                np.save(os.path.join(self._feat_dir, '{}.npy'.format(wav_filename.split('.')[0])), feat)
+                if feat is not None:
+                    print('\t{}: {}, {}'.format(file_cnt, file_name, feat.shape ))
+                    np.save(os.path.join(self._feat_dir, '{}.npy'.format(wav_filename.split('.')[0])), feat)
 
     def preprocess_features(self):
         # Setting up folders and filenames
@@ -260,16 +256,15 @@ class FeatureClass:
         print('\t\taud_dir {}\n\t\tdesc_dir {}\n\t\tlabel_dir {}'.format(
             self._aud_dir, self._desc_dir, self._label_dir))
         create_folder(self._label_dir)
-
-        for file_cnt, file_name in enumerate(os.listdir(self._desc_dir)):
-#            if len(file_name)!=26: #checking clean metadata files #TODO this is not required if the dataset is clean
-#                continue
-            wav_filename = '{}.wav'.format(file_name.split('.')[0])
-            desc_file_polar = self.load_output_format_file(os.path.join(self._desc_dir, file_name))
-            desc_file = self.convert_output_format_polar_to_cartesian(desc_file_polar)
-            label_mat = self.get_labels_for_file(desc_file)
-            print('{}: {}, {}'.format(file_cnt, file_name, label_mat.shape))
-            np.save(os.path.join(self._label_dir, '{}.npy'.format(wav_filename.split('.')[0])), label_mat)
+        for split in os.listdir(self._desc_dir):
+            print('Split: {}'.format(split))
+            for file_cnt, file_name in enumerate(os.listdir(os.path.join(self._desc_dir, split))):
+                wav_filename = '{}.wav'.format(file_name.split('.')[0])
+                desc_file_polar = self.load_output_format_file(os.path.join(self._desc_dir, split, file_name))
+                desc_file = self.convert_output_format_polar_to_cartesian(desc_file_polar)
+                label_mat = self.get_labels_for_file(desc_file)
+                print('\t{}: {}, {}'.format(file_cnt, file_name, label_mat.shape))
+                np.save(os.path.join(self._label_dir, '{}.npy'.format(wav_filename.split('.')[0])), label_mat)
 
     # -------------------------------  DCASE OUTPUT  FORMAT FUNCTIONS -------------------------------
     def load_output_format_file(self, _output_format_file):
