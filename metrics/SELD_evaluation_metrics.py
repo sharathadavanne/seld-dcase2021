@@ -1,4 +1,4 @@
-# Implements the localization and detection metrics proposed in [1] with the multi-track extensions from [2]
+# Implements the localization and detection metrics proposed in [1] with extensions to support multi-instance of the same class from [2].
 #
 # [1] Joint Measurement of Localization and Detection of Sound Events
 # Annamaria Mesaros, Sharath Adavanne, Archontis Politis, Toni Heittola, Tuomas Virtanen
@@ -58,7 +58,7 @@ class SELDMetrics(object):
 
         # Class-sensitive localization performance
         LE = self._total_DE / float(self._DE_TP + eps) if self._DE_TP else 180 # When the total number of prediction is zero
-        LR = self._DE_TP / (eps + self._DE_TP + 0.5 * (self._DE_FP + self._DE_FN))
+        LR = self._DE_TP / (eps + self._DE_TP + self._DE_FN)
         return ER, F, LE, LR
 
     def update_seld_scores(self, pred, gt):

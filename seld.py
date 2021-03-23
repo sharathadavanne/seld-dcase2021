@@ -231,7 +231,7 @@ def main(argv):
 
         if params['mode'] is 'dev':
             # Calculate DCASE2021 scores
-            test_seld_metric = score_obj.get_SELD_Results(dcase_output_val_folder)
+            test_seld_metric = score_obj.get_SELD_Results(dcase_output_test_folder)
 
             print('Results on test split:')
             print('\tDCASE2021 Scores')

@@ -128,14 +128,15 @@ def reshape_3Dto2D(A):
 
 
 if __name__ == "__main__":
-    ref_files_folder = 'results/metadata_dev'
-    pred_output_format_files = 'results/4_foa_dev'
+    pred_output_format_files = 'results/2_mic_dev_test' # Path of the DCASEoutput format files
 
-    score_obj = ComputeSELDResults(parameter.get_params(), ref_files_folder=ref_files_folder)
+    # Compute just the DCASE 2021 final results 
+    score_obj = ComputeSELDResults(parameter.get_params())
     ER, F, LE, LR, seld_scr = score_obj.get_SELD_Results(pred_output_format_files)
     print('SELD score (early stopping metric): {:0.2f}'.format(seld_scr))
     print('SED metrics: Error rate: {:0.2f}, F-score:{:0.1f}'.format(ER, 100*F))
     print('DOA metrics: Localization error: {:0.1f}, Localization Recall: {:0.1f}'.format(LE, 100*LR))
 
+    # Compute DCASE 2021 results along with room-wise performance
     score_obj.get_consolidated_SELD_results(pred_output_format_files)
 
