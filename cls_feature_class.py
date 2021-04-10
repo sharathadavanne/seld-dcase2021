@@ -103,7 +103,7 @@ class FeatureClass:
             mel_spectra = np.dot(mag_spectra, self._mel_wts)
             log_mel_spectra = librosa.power_to_db(mel_spectra)
             mel_feat[:, :, ch_cnt] = log_mel_spectra
-        mel_feat = mel_feat.reshape((linear_spectra.shape[0], self._nb_mel_bins * linear_spectra.shape[-1]))
+        mel_feat = mel_feat.transpose((0, 2, 1)).reshape((linear_spectra.shape[0], -1))
         return mel_feat
 
     def _get_foa_intensity_vectors(self, linear_spectra):
@@ -118,7 +118,7 @@ class FeatureClass:
 
         # we are doing the following instead of simply concatenating to keep the processing similar to mel_spec and gcc
         foa_iv = np.dstack((IVx, IVy, IVz))
-        foa_iv = foa_iv.reshape((linear_spectra.shape[0], self._nb_mel_bins * 3))
+        foa_iv = foa_iv.transpose((0, 2, 1)).reshape((linear_spectra.shape[0], -1))
         if np.isnan(foa_iv).any():
             print('Feature extraction is generating nan outputs')
             exit()
@@ -135,7 +135,7 @@ class FeatureClass:
                 cc = np.concatenate((cc[:, -self._nb_mel_bins//2:], cc[:, :self._nb_mel_bins//2]), axis=-1)
                 gcc_feat[:, :, cnt] = cc
                 cnt += 1
-        return gcc_feat.reshape((linear_spectra.shape[0], self._nb_mel_bins*gcc_channels))
+        return gcc_feat.transpose((0, 2, 1)).reshape((linear_spectra.shape[0], -1))
 
     def _get_spectrogram_for_file(self, audio_path):
         audio_in, fs = self._load_audio(audio_path)
