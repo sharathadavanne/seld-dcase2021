@@ -107,11 +107,12 @@ class FeatureClass:
         return mel_feat
 
     def _get_foa_intensity_vectors(self, linear_spectra):
-        IVx = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 1])
-        IVy = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 2])
-        IVz = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 3])
+        IVx = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 3])
+        IVy = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 1])
+        IVz = np.real(np.conj(linear_spectra[:, :, 0]) * linear_spectra[:, :, 2])
 
-        normal = np.sqrt(IVx**2 + IVy**2 + IVz**2) + self._eps
+        normal = self._eps + (np.abs(linear_spectra[:, :, 0])**2 + np.abs(linear_spectra[:, :, 1])**2 + np.abs(linear_spectra[:, :, 2])**2 + np.abs(linear_spectra[:, :, 3])**2)/2.
+        #normal = np.sqrt(IVx**2 + IVy**2 + IVz**2) + self._eps
         IVx = np.dot(IVx / normal, self._mel_wts)
         IVy = np.dot(IVy / normal, self._mel_wts)
         IVz = np.dot(IVz / normal, self._mel_wts)
