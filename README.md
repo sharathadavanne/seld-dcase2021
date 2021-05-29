@@ -9,6 +9,7 @@ As the baseline method for the [SELD task](https://www.aane.in/research/computat
 
 2. [Kazuki Shimada, Yuichiro Koyama, Naoya Takahashi, Shusuke Takahashi, and Yuki Mitsufuji, "ACCDOA: Activity-Coupled Cartesian Direction of Arrival Representation for Sound Event Localization and Detection" in the The international Conference on Acoustics, Speech, & Signal Processing (ICASSP 2021)](https://arxiv.org/pdf/2010.15306.pdf)
 
+NOTE: The baseline only supports detection of one instance of a sound class in a given time frame. However, the training data can consist of multiple instances of the same sound class in a given time frame. If participants are planning to build an SELD system that can detect such multiple instances of the same class, then you will have to modify this code accordingly. On the other hand, the provided metric code - `SELD_evaluation_metrics.py` and the class wrapper for it `cls_compute_seld_results.py` both support multiple instances of the same class. So you can continue to use them for your multi-instance SELD system.
 
 ## BASELINE METHOD
 
@@ -119,8 +120,8 @@ The evaluation metric scores for the test split of the development dataset is gi
 
 | Dataset | ER<sub>20°</sub> | F<sub>20°</sub> | LE<sub>CD</sub> | LR<sub>CD</sub> |
 | ----| --- | --- | --- | --- |
-| Ambisonic (FOA) | 0.66 | 32.8 % | 25.9&deg; | 44.3 % |
-| Microphone Array (MIC) | 0.69 | 26.8 % | 31.6&deg; | 44.5 % |
+| Ambisonic (FOA) | 0.69 | 33.9 % | 24.1&deg; | 43.9 % |
+| Microphone Array (MIC) | 0.74 | 24.7 % | 30.9&deg; | 38.2 % |
 
 **Note:** The reported baseline system performance is not exactly reproducible due to varying setups. However, you should be able to obtain very similar results.
 

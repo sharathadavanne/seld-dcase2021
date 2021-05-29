@@ -14,7 +14,7 @@
 import numpy as np
 eps = np.finfo(np.float).eps
 from scipy.optimize import linear_sum_assignment
-
+from IPython import embed
 class SELDMetrics(object):
     def __init__(self, doa_threshold=20, nb_classes=11):
         '''
@@ -59,6 +59,7 @@ class SELDMetrics(object):
         # Class-sensitive localization performance
         LE = self._total_DE / float(self._DE_TP + eps) if self._DE_TP else 180 # When the total number of prediction is zero
         LR = self._DE_TP / (eps + self._DE_TP + self._DE_FN)
+        # print('S {}, D {}, I {}, Nref {}, TP {}, FP {}, FN {}, DE_TP {}, DE_FN {}, totalDE {}'.format(self._S, self._D, self._I, self._Nref, self._TP, self._FP, self._FN, self._DE_TP, self._DE_FN, self._total_DE))
         return ER, F, LE, LR
 
     def update_seld_scores(self, pred, gt):
@@ -76,9 +77,9 @@ class SELDMetrics(object):
             for class_cnt in range(self._nb_classes):
                 # Counting the number of referece tracks for each class in the segment
                 nb_gt_doas = max([len(val) for val in gt[block_cnt][class_cnt][0][1]]) if class_cnt in gt[block_cnt] else None
+                nb_pred_doas = max([len(val) for val in pred[block_cnt][class_cnt][0][1]]) if class_cnt in pred[block_cnt] else None
                 if nb_gt_doas is not None:
                     self._Nref += nb_gt_doas
-
                 if class_cnt in gt[block_cnt] and class_cnt in pred[block_cnt]:
                     # True positives or False positive case
 
@@ -91,13 +92,13 @@ class SELDMetrics(object):
                     matched_track_cnt = {}
                     gt_ind_list = gt[block_cnt][class_cnt][0][0]
                     pred_ind_list = pred[block_cnt][class_cnt][0][0]
-                    for gt_ind, gt_val in enumerate(gt_ind_list):
-                        if gt_val in pred_ind_list:
-                            gt_arr = np.array(gt[block_cnt][class_cnt][0][1][gt_ind])
-                            gt_ids = gt_arr[:, -1]
+                    for gt_cnt, gt_ind in enumerate(gt_ind_list):
+                        if gt_ind in pred_ind_list:
+                            gt_arr = np.array(gt[block_cnt][class_cnt][0][1][gt_cnt])
+                            gt_ids = np.arange(len(gt_arr[:, -1])) #TODO if the reference has track IDS use here - gt_arr[:, -1]
                             gt_doas = gt_arr[:, :-1] 
                             
-                            pred_ind = pred_ind_list.index(gt_val)
+                            pred_ind = pred_ind_list.index(gt_ind)
                             pred_arr = np.array(pred[block_cnt][class_cnt][0][1][pred_ind])
                             pred_doas = pred_arr[:, :-1]
 
@@ -118,9 +119,9 @@ class SELDMetrics(object):
                     # Update evaluation metrics based on the distance between ref-pred tracks
                     if len(matched_track_dist) == 0:
                         # if no tracks are found. This occurs when the predicted DOAs are not aligned frame-wise to the reference DOAs
-                        loc_FN += 1
-                        self._FN += 1
-                        self._DE_FN += 1
+                        loc_FN += nb_pred_doas
+                        self._FN += nb_pred_doas
+                        self._DE_FN += nb_pred_doas
                     else:
                         # for the associated ref-pred tracks compute the metrics
                         for track_id in matched_track_dist:
@@ -138,16 +139,28 @@ class SELDMetrics(object):
                             else:
                                 loc_FP += 1
                                 self._FP += 1
+                        # in the multi-instance of same class scenario, if the number of predicted tracks are greater
+                        # than reference tracks count as FP, if it less than reference count as FN
+                        if nb_pred_doas > nb_gt_doas:
+                            # False positive
+                            loc_FP += (nb_pred_doas-nb_gt_doas)
+                            self._FP += (nb_pred_doas-nb_gt_doas)
+                            self._DE_FP += (nb_pred_doas-nb_gt_doas)
+                        elif nb_pred_doas < nb_gt_doas:
+                            # False negative
+                            loc_FN += (nb_gt_doas-nb_pred_doas)
+                            self._FN += (nb_gt_doas-nb_pred_doas)
+                            self._DE_FN += (nb_gt_doas-nb_pred_doas)
                 elif class_cnt in gt[block_cnt] and class_cnt not in pred[block_cnt]:
                     # False negative
-                    loc_FN += 1
-                    self._FN += 1
-                    self._DE_FN += 1
+                    loc_FN += nb_gt_doas
+                    self._FN += nb_gt_doas
+                    self._DE_FN += nb_gt_doas
                 elif class_cnt not in gt[block_cnt] and class_cnt in pred[block_cnt]:
                     # False positive
-                    loc_FP += 1
-                    self._FP += 1
-                    self._DE_FP += 1
+                    loc_FP += nb_pred_doas
+                    self._FP += nb_pred_doas
+                    self._DE_FP += nb_pred_doas
 
             self._S += np.minimum(loc_FP, loc_FN)
             self._D += np.maximum(0, loc_FN - loc_FP)
@@ -236,5 +249,6 @@ def early_stopping_metric(sed_error, doa_error):
         1 - doa_error[1]]
         )
     return seld_metric
+
 
 
