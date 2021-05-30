@@ -27,6 +27,7 @@ class ComputeSELDResults(object):
                 self._ref_labels[ref_file] = self._feat_cls.segment_labels(gt_dict, self._feat_cls.get_nb_frames())
 
         self._nb_ref_files = len(self._ref_labels)
+        print('SELD metrics class: loaded : {} reference files'.format(len(self._ref_labels)))
 
     @staticmethod
     def get_nb_files(file_list, tag='all'):

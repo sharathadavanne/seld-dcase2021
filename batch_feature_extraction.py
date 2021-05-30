@@ -3,7 +3,7 @@
 import cls_feature_class
 import parameter
 
-process_str = 'dev'   # 'dev' or 'eval' will extract features for the respective set accordingly
+process_str = 'dev, eval'   # 'dev' or 'eval' will extract features for the respective set accordingly
                             #  'dev, eval' will extract features of both sets together
 
 params = parameter.get_params()
