@@ -5,7 +5,9 @@
    
 As the baseline method for the [SELD task](https://www.aane.in/research/computational-audio-scene-analysis-casa/sound-event-localization-detection-and-tracking), we use the SELDnet method studied in the following papers, with  Activity-Coupled Cartesian Direction of Arrival (ACCDOA) representation as the output format. If you are using this baseline method or the datasets in any format, then please consider citing the following two papers. If you want to read more about [generic approaches to SELD then check here](https://www.aane.in/research/computational-audio-scene-analysis-casa/sound-event-localization-detection-and-tracking).
 
-1. [Sharath Adavanne, Archontis Politis, Joonas Nikunen and Tuomas Virtanen, "Sound event localization and detection of overlapping sources using convolutional recurrent neural network" in IEEE Journal of Selected Topics in Signal Processing (JSTSP 2018)](https://arxiv.org/pdf/1807.00129.pdf)
+1.  [Archontis Politis, Sharath Adavanne, Daniel Krause, Antoine Deleforge, Prerak Srivastava, and Tuomas Virtanen. "A dataset of dynamic reverberant sound scenes with directional interferers for sound event localization and detection", submitted to DCASE 2021](https://arxiv.org/pdf/2106.06999.pdf)
+
+2.  [Sharath Adavanne, Archontis Politis, Joonas Nikunen and Tuomas Virtanen, "Sound event localization and detection of overlapping sources using convolutional recurrent neural network" in IEEE Journal of Selected Topics in Signal Processing (JSTSP 2018)](https://arxiv.org/pdf/1807.00129.pdf)
 
 2. [Kazuki Shimada, Yuichiro Koyama, Naoya Takahashi, Shusuke Takahashi, and Yuki Mitsufuji, "ACCDOA: Activity-Coupled Cartesian Direction of Arrival Representation for Sound Event Localization and Detection" in the The international Conference on Acoustics, Speech, & Signal Processing (ICASSP 2021)](https://arxiv.org/pdf/2010.15306.pdf)
 
